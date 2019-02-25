@@ -448,6 +448,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
 static int     sigcnt     = 0;
 static bool    running    = true;
+static bool    restarting = false;
 static bool    do_metrics = false;
 metrics_stdout metrics_screen;
 static bool    show_mbms          = false;
@@ -462,6 +463,11 @@ void sig_int_handler(int signo)
   if (sigcnt >= 10) {
     exit(-1);
   }
+}
+
+void sig_usr1_handler(int signo) {
+    restarting = true;
+    printf("Radio Link Failure caught (SIGUSR1)\n");
 }
 
 void* input_loop(void* m)
@@ -511,9 +517,12 @@ void* input_loop(void* m)
 
 int main(int argc, char* argv[])
 {
+  do {
+  restarting = false;
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
+  signal(SIGUSR1, sig_usr1_handler);
   all_args_t args;
 
   srslte_debug_handle_crash(argc, argv);
@@ -566,7 +575,7 @@ int main(int argc, char* argv[])
     }
   }
   int cnt = 0;
-  while (running) {
+  while (running && !restarting) {
     if (mbms_service_start) {
       if (ue->mbms_service_start(serv, port)) {
         mbms_service_start = false;
@@ -591,5 +600,6 @@ int main(int argc, char* argv[])
   ue->stop();
   ue->cleanup();
   cout << "---  exiting  ---" << endl;
+  } while (restarting && running);
   exit(0);
 }
