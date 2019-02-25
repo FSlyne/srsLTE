@@ -35,6 +35,8 @@
 #include <math.h>
 #include <sstream>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
 
 using namespace srslte;
 using namespace asn1::rrc;
@@ -1194,6 +1196,9 @@ void rrc::radio_link_failure() {
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
+   // send USR1 signal when radio link fails. This will be picked up by outter loop in main.cc
+   pid_t pid=getpid();
+   kill(pid,SIGUSR1);
     go_rlf = true;
   }
 }
