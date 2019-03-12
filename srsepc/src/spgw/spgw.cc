@@ -400,9 +400,13 @@ spgw::get_new_user_teid()
 }
 
 in_addr_t
-spgw::get_new_ue_ipv4()
+spgw::get_new_ue_ipv4(uint64_t imsi)
 {
-  m_h_next_ue_ip++;
+  in_addr_t n;
+  if (m_imsi_to_ip.find(imsi) != m_imsi_to_ip.end()) {
+      return m_imsi_to_ip.find(imsi)->second;
+  }
+  m_imsi_to_ip.insert(std::make_pair(imsi,++m_h_next_ue_ip));
   return ntohl(m_h_next_ue_ip);//FIXME Tmp hack
 }
 
@@ -414,8 +418,8 @@ spgw::create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req)
   //Setup uplink user TEID
   uint64_t spgw_uplink_user_teid = get_new_user_teid();
   //Allocate UE IP
-  in_addr_t ue_ip = get_new_ue_ipv4();
-  //in_addr_t ue_ip = inet_addr("172.16.0.2");
+  in_addr_t ue_ip = get_new_ue_ipv4(cs_req->imsi);
+//  in_addr_t ue_ip = inet_addr("172.16.0.2");
   uint8_t default_bearer_id = 5;
 
   m_spgw_log->console("SPGW: Allocated Ctrl TEID %" PRIu64 "\n", spgw_uplink_ctrl_teid);

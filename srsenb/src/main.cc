@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <pthread.h>
+#include <zmq.h>
 
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
@@ -312,6 +313,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
 static int  sigcnt = 0;
 static bool running    = true;
+static bool restarting = false;
 static bool do_metrics = false;
 
 void sig_int_handler(int signo)
@@ -348,6 +350,29 @@ void *input_loop(void *m)
   return NULL;
 }
 
+void *zmq_listener(void *vargp) 
+{
+	void *context = zmq_ctx_new ();
+	void *subscriber = zmq_socket (context, ZMQ_SUB);
+	char brokerip[]="10.10.10.195";
+	char brokersubport[]="10000";
+	char brokersub[100];
+	sprintf(brokersub,"tcp://%s:%s",brokerip,brokersubport);
+	zmq_connect (subscriber, brokersub);
+	char category[]="NetEvent";
+	zmq_setsockopt (subscriber, ZMQ_SUBSCRIBE,category,strlen(category));
+	while (1>0) {
+		char buffer [50];
+		zmq_recv (subscriber, buffer, 50, 0);
+		printf ("Received %s\n", buffer);
+		restarting=true;
+	}
+	zmq_close (subscriber);
+	zmq_ctx_destroy (context);
+	return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
   signal(SIGINT, sig_int_handler);
@@ -355,6 +380,11 @@ int main(int argc, char *argv[])
   all_args_t        args;
   srslte::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout    metrics_screen;
+
+  //Setup ZMQ
+  int major, minor, patch;
+  zmq_version (&major, &minor, &patch);
+  printf ("Current 0MQ version is %d.%d.%d\n", major, minor, patch);
 
   enb              *enb = enb::get_instance();
 
@@ -390,7 +420,7 @@ int main(int argc, char *argv[])
     }
   }
   int cnt=0;
-  while (running) {
+  while (running && !restarting) {
     if (args.expert.print_buffer_state) {
       cnt++;
       if (cnt==1000) {
