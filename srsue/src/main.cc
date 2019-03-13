@@ -515,9 +515,17 @@ void* input_loop(void* m)
   return NULL;
 }
 
+void* add_route(void* )
+{
+int ret;
+ret=system("nohup bash /home/ctvr/srsLTE/scripts/addroute.sh");
+pthread_exit(NULL);
+}
+
 int main(int argc, char* argv[])
 {
-  do {
+  pthread_t route;
+  do { // outer running and restarting loop
   restarting = false;
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
@@ -574,6 +582,7 @@ int main(int argc, char* argv[])
       mbms_service_start = true;
     }
   }
+  pthread_create(&route, NULL, &add_route, NULL);
   int cnt = 0;
   while (running && !restarting) {
     if (mbms_service_start) {
