@@ -3,4 +3,5 @@ build/*
 build2/*
 *.cmake
 *.o
+.fftw_wisdom
 >>>>>>> 841a4ea6e9e7dcf3e30ca4eb8a5d0159b1e053b8
