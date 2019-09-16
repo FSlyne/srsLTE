@@ -6,6 +6,8 @@ import time
 
 SEC=2
 
+ZMQbroker="10.10.10.41"
+
 devnull = open(os.devnull, 'wb')
 
 class zmqsub(zmqSubscriber):
@@ -25,7 +27,7 @@ class zmqsub(zmqSubscriber):
 
 class SubscriberThread(threading.Thread):
   def run(self):
-    b=zmqsub("channel:enodeb1","10.10.10.195")
+    b=zmqsub("channel:enodeb1",ZMQbroker)
 
 
 def start_enb(prb):
